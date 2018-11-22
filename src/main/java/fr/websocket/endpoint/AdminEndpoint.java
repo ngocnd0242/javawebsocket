@@ -1,31 +1,36 @@
 package fr.websocket.endpoint;
 
+import fr.websocket.encrypt.AdminDecoder;
+import fr.websocket.encrypt.AdminEncoder;
+import fr.websocket.entity.AdminCard;
 import fr.websocket.entity.Message;
 import fr.websocket.encrypt.MessageDecoder;
 import fr.websocket.encrypt.MessageEncoder;
 
 import javax.websocket.*;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import static java.lang.String.format;
 
-@javax.websocket.server.ServerEndpoint(value = "/admin", encoders = MessageEncoder.class, decoders = MessageDecoder.class)
+@javax.websocket.server.ServerEndpoint(value = "/admin", encoders = AdminEncoder.class, decoders = AdminDecoder.class)
 public class AdminEndpoint {
 
     static Set<Session> peers = Collections.synchronizedSet(new HashSet<Session>());
 
     @OnOpen
-    public void onOpen(Session session) {
-        System.out.println(format("%s joined the chat room.", session.getId()));
+    public void onOpen(Session session) throws IOException, EncodeException {
+        System.out.println(format("%s joined the check admin.", session.getId()));
         peers.add(session);
+
+        AdminCard adminCard = new AdminCard();
+        adminCard.setStatus(200);
+        adminCard.setMessage("connect success!");
+        session.getBasicRemote().sendObject(adminCard);
     }
 
     @OnMessage
-    public void onMessage(Message message, Session session) throws IOException, EncodeException {
+    public void onMessage(AdminCard message, Session session) throws IOException, EncodeException {
         //broadcast the message
         for (Session peer : peers) {
             if (!session.getId().equals(peer.getId())) { // do not resend the message to its sender
@@ -36,15 +41,18 @@ public class AdminEndpoint {
 
     @OnClose
     public void onClose(Session session) throws IOException, EncodeException {
-        System.out.println(format("%s left the chat room.", session.getId()));
+        System.out.println(format("%s left the check admin.", session.getId()));
         peers.remove(session);
-        //notify peers about leaving the chat room
-        for (Session peer : peers) {
-            Message message = new Message();
-            message.setSender("Server");
-            message.setContent(format("%s left the chat room", (String) session.getUserProperties().get("user")));
-            message.setReceived(new Date());
-            peer.getBasicRemote().sendObject(message);
+    }
+
+    @OnError
+    public void onError(Throwable t, Session session) throws Throwable{
+        if(Objects.isNull(session)){
+            System.err.println("connection error: " + session.getId());
         }
+        AdminCard adminCard = new AdminCard();
+        adminCard.setStatus(500);
+        adminCard.setMessage("connect error!");
+        session.getBasicRemote().sendObject(adminCard);
     }
 }

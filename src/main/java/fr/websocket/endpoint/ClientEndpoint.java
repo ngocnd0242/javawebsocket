@@ -30,6 +30,10 @@ public class ClientEndpoint {
         for (Session peer : peers) {
             if (!session.getId().equals(peer.getId())) { // do not resend the message to its sender
                 peer.getBasicRemote().sendObject(message);
+
+
+                // Open connection den may doc the
+                // Luc nao co ket qua tu may doc the thi se send
             }
         }
     }
